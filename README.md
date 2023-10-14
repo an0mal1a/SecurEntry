@@ -19,7 +19,7 @@
 
 # Ayudar en el desarrollo
 
-    Si te interesa ayudar en el desarrollo y testear la app en busca de errores:
+    Si te interesa ayudar en el desarrollo y/o testear la app en busca de errores:
             
             · Contacta por email a la siguiente direccion:
 
