@@ -1,4 +1,4 @@
-#### SecurEntry
+### SecurEntry (Windows)
 
 ---
 # Descripcion
@@ -6,12 +6,19 @@
     en Python. Almacena tus contraseñas de forma segura y accede a ellas fácilmente desde cualquier lugar. 
     Utiliza técnicas avanzadas de cifrado para proteger tus contraseñas y garantizar tu privacidad
 
-
- - En desarrollo, no disponible el uso
-
 ---
 
+# Compilación:
+
+    Al Ejecutar el archivo cmp.py te dará el comando necesario de pyinstaller para compilar
+    a .exe el código.
+
+- Ejecución:
+
+        Ejecutamos el .exe dentro de la carpeta "./dist" 
+
 # Ayudar en el desarrollo
+
     Si te interesa ayudar en el desarrollo y testear la app en busca de errores:
             
             · Contacta por email a la siguiente direccion:
