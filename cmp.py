@@ -6,7 +6,7 @@ def makeCommand():
     # Genera la parte --add-data del comando para cada archivo en el directorio de imágenes
     add_data_parts = [f'--add-data "{os.path.join(image_dir, filename)};images/."' for filename in os.listdir(image_dir)]
     add_data_option = ' '.join(add_data_parts)
-    return f'pyinstaller --onefile --noconsole --clean --strip --noupx --icon="src\images\shield.ico" {add_data_option} -n SecurEntry src/manager.py'
+    return f'pyinstaller --onefile --noconsole --clean --strip --noupx --icon="src\images\security.ico" {add_data_option} -n SecurEntry src/manager.py'
 
 
 def execCommand(command):
