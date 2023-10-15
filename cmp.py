@@ -1,14 +1,24 @@
 import os
+import subprocess
 
-# Ruta al directorio de imágenes
-image_dir = 'images'
+def makeCommand():
+    image_dir = 'src/images'
+    # Genera la parte --add-data del comando para cada archivo en el directorio de imágenes
+    add_data_parts = [f'--add-data "{os.path.join(image_dir, filename)};images/."' for filename in os.listdir(image_dir)]
+    add_data_option = ' '.join(add_data_parts)
+    return f'pyinstaller --onefile --noconsole --clean --strip --noupx --icon="src\images\shield.ico" {add_data_option} -n SecurEntry src/manager.py'
 
-# Genera la parte --add-data del comando para cada archivo en el directorio de imágenes
-add_data_parts = [f'--add-data "{os.path.join(image_dir, filename)};images/."' for filename in os.listdir(image_dir)]
 
-# Une todas las partes en una sola cadena
-add_data_option = ' '.join(add_data_parts)
+def execCommand(command):
+    cmpl = subprocess.Popen(command, shell=True)
+    cmpl.wait()
 
-# Ahora puedes usar add_data_option en tu comando pyinstaller
-command = f'pyinstaller --onefile --noconsole --clean --strip --noupx --icon="images\shield.ico" {add_data_option} -n SecurEntry manager.py'
-print(command)
+
+def main():
+    command = makeCommand()
+    print("\n\tExecuting command to compile: %s\n\n" % command)
+    execCommand(command)
+
+
+if __name__ == "__main__":
+    main()

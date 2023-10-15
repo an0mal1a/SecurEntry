@@ -5,10 +5,10 @@ block_cipher = None
 
 
 a = Analysis(
-    ['manager.py'],
+    ['src\\manager.py'],
     pathex=[],
     binaries=[],
-    datas=[('images\\1.png', 'images/.'), ('images\\eye_icon1.png', 'images/.'), ('images\\generate.png', 'images/.'), ('images\\hidden1.png', 'images/.'), ('images\\key.png', 'images/.'), ('images\\net.ico', 'images/.'), ('images\\shield.ico', 'images/.')],
+    datas=[('src/images\\1.png', 'images/.'), ('src/images\\eye_icon1.png', 'images/.'), ('src/images\\generate.png', 'images/.'), ('src/images\\hidden1.png', 'images/.'), ('src/images\\key.png', 'images/.'), ('src/images\\net.ico', 'images/.'), ('src/images\\shield.ico', 'images/.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -41,5 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['images\\shield.ico'],
+    icon=['src\\images\\shield.ico'],
 )
