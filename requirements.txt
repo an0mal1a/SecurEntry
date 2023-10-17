@@ -1,3 +1,4 @@
 pysimplegui==4.60.5
 cryptography==40.0.2
 pyinstaller==5.9.0
+tinyaes==1.0.4

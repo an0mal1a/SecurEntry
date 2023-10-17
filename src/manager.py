@@ -1,25 +1,26 @@
 import os
 import pathlib
+import pprint
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 import PySimpleGUI as Sg
+import passStrength as psg
 import sqlite3
 import string
 import random
 import threading
 from cryptor import init_decrypt_file, init_crypt_file
 
-# Encrypt Decrypt hecho!
-# Diseñar la app para que sea bonita : )
-# Borrar logica, acabar
+# Añadir quiality a sql
+# Testear acceso a memoria
 
 
 options = ['unused', ['Open Generator', '---', 'Robust', 'Medium', 'Low']]
 right_option_click = ['unused', ['Add Entry', '---', 'Edit Entry', 'Copy Username', 'Copy Password']]
-#temp = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
-#temp = "C:\\Users\\pablo_c\\AppData\\Local\\Temp\\tmp0za2_rl8.db"
+
 temp = tempfile.NamedTemporaryFile(delete=False)
 temp.close()
 
@@ -46,45 +47,76 @@ def resource_path(relative_path):
     return str(os.path.join(base_path, relative_path))
 
 
-def get_pass(lenght, window1, master=False):
-    passwrd = rndom_passwrd(int(lenght))
+def get_pass(lenght, window1, master=False, values="all"):
+    passwrd = rndom_passwrd(int(lenght), values)
     if master:
         window1['-master-password-'].update(passwrd)
         window1['-masterpassword-'].update(passwrd)
     else:
         window1['password'].update(passwrd)
         window1['-password-'].update(passwrd)
-
-
-def rndom_passwrd(index):
-    all_chars = list(string.ascii_lowercase) + list(string.ascii_uppercase) + list(string.digits) + list(string.punctuation)
-    passwrd = "".join(random.choice(all_chars) for _ in range(index))
     return passwrd
 
 
-def write_password(password, user, title, url, used, notes, tables_info):
+def rndom_passwrd(lenght, values="all"):
+    all_chars = []
+    upper = list(string.ascii_lowercase)
+    lower = list(string.ascii_uppercase)
+    digits = list(string.digits)
+    minus = ["-"]
+    underline = ["_"]
+    special = ["!", '"', "%", "$", "&", "'", "*", "+", ",", ".", ":", ";", "=", "?", "¿", "¡", "\\", "|", "`", "~", "#"]
+    brakets = ["[", "]", "{", "}", "<", ">", "(", ")"]
+    space = [" "]
+
+    if values == "all":
+        all_chars = upper + lower + digits + minus + underline + special + brakets + space
+    else:
+        for value in values:
+            if value == 'upper':
+                all_chars.extend(upper)
+            elif value == 'lower':
+                all_chars.extend(lower)
+            elif value == 'digits':
+                all_chars.extend(digits)
+            elif value == 'minus':
+                all_chars.extend(minus)
+            elif value == 'underline':
+                all_chars.extend(underline)
+            elif value == 'special':
+                all_chars.extend(special)
+            elif value == 'brakets':
+                all_chars.extend(brakets)
+            elif value == 'space':
+                all_chars.extend(space)
+
+    passwrd = "".join(random.choice(all_chars) for _ in range(lenght))
+    return passwrd
+
+
+def write_password(password, user, title, url, used, notes, quality, tables_info):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
 
     id_t = len(tables_info)
 
-    query = "INSERT INTO {} (id, title, username, password, url, notes) VALUES (?, ?, ?, ?, ?, ?)".format(used)
-    values = (id_t, title, user, password, url, notes)
+    query = "INSERT INTO {} (id, title, username, password, url, notes, quality) VALUES (?, ?, ?, ?, ?, ?, ?)".format(used)
+    values = (id_t, title, user, password, url, notes, quality)
     c.execute(query, values)
 
     conn.commit()
     conn.close()
 
 
-def update_password(password, user, title, url, used, notes, id_t):
+def update_password(password, user, title, url, used, notes, quality, id_t):
     try:
 
         conn = sqlite3.connect(db_file)
         c = conn.cursor()
 
         # Buscar la entrada existente en la tabla y actualizarla
-        query = f"UPDATE {used} SET password=?, username=?, title=?, url=?, notes=? WHERE id=?"
-        values = (password, user, title, url, notes, id_t)
+        query = f"UPDATE {used} SET password=?, username=?, title=?, url=?, notes=? quality=? WHERE id=?"
+        values = (password, user, title, url, notes, quality, id_t)
 
         c.execute(query, values)
 
@@ -97,9 +129,10 @@ def update_password(password, user, title, url, used, notes, id_t):
         return False
 
 
-def generate_random_password(lenght, window1):
-    get_pass(lenght, window1)
-    window.finalize()
+def generate_random_password(lenght, window1, values="all"):
+    passwd = get_pass(lenght, window1, values=values)
+    return passwd
+    #window.finalize()
 
 
 def delete_sql_entry(title, id_column, used):
@@ -167,9 +200,214 @@ def delete_popup(title, id_column, used):
                 return 1
 
 
+def generatorPassword(values, lenght):
+    newValues = []
+    opts = ["upper", "lower", "digits", "special", "space", "brakets", "minus", "underline"]
+
+    for v in values:
+        if v in opts:
+            if values[v]:
+                newValues.append([v][0])
+    return rndom_passwrd(lenght, values=newValues)
+
+
+def disable_derive_elements(window, disabled, id):
+    if id == 1:
+        keys = ["upper", "lower", "digits", "special", "space", "brakets", "minus", "underline"]
+    else:
+        keys = ["derive", "random"]
+
+    for key in keys:
+        window[key].update(disabled=disabled)
+
+
+def changeLength(values1, window1):
+    if values1['option'] == "Robust":
+        window1['-length-'].update(24)
+        window1['brakets'].update(True)
+        window1['space'].update(True)
+        window1['upper'].update(True)
+        window1['lower'].update(True)
+        window1['digits'].update(True)
+        window1['special'].update(True)
+        window1['minus'].update(True)
+        window1['underline'].update(True)
+
+    elif values1['option'] == "Medium":
+        window1['-length-'].update(18)
+        window1['brakets'].update(False)
+        window1['space'].update(False)
+        window1['upper'].update(True)
+        window1['lower'].update(True)
+        window1['digits'].update(True)
+        window1['special'].update(True)
+        window1['minus'].update(True)
+        window1['underline'].update(True)
+
+
+    elif values1['option'] == "Low":
+        window1['-length-'].update(12)
+        window1['brakets'].update(False)
+        window1['space'].update(False)
+        window1['special'].update(False)
+        window1['minus'].update(False)
+        window1['underline'].update(False)
+        window1['upper'].update(True)
+        window1['lower'].update(True)
+        window1['digits'].update(True)
+
+
+def derivePasswd(original_password, rand=False):
+    all_chars = list(string.ascii_lowercase) + list(string.ascii_uppercase) + list(string.digits) + ["-"] + ["_"] + ["!", '"', "%", "$", "&", "'", "*", "+", ",", ".", ":", ";", "=", "?", "¿", "¡", "\\", "|", "`", "~", "#"] + ["[", "]", "{", "}", "<", ">", "(", ")"] + [" "]
+    derived_password = ""
+    hops = random.randint(3, 10)
+
+    for i, char in enumerate(original_password):
+        hop = random.randint(3, 10) if rand else hops  # Saltos aleatorios si rand=True, 1 salto si rand=False
+        char_index = all_chars.index(char)
+        new_char_index = (char_index + hop) % len(all_chars)
+        derived_password += all_chars[new_char_index]
+
+    return derived_password
+
+
+def makeChanges(values1, window1):
+    if values1['mod'] is True:
+        p = generatorPassword(values1, values1["-length-"])
+        window1.close()
+        return p
+
+    elif values1['der'] is True:
+        derive = values1['derive']
+        if values1['random'] is True: window1.close(); return derivePasswd(derive, rand=True)
+        else: window1.close(); return derivePasswd(derive)
+
+
+def GeneratorPopup():
+    Sg.theme_add_new('chill', {'BACKGROUND': color_gris_fondo_claro,
+                               'TEXT': 'black',
+                               'INPUT': 'white',
+                               'TEXT_INPUT': 'black',
+                               'SCROLL': color_gris_claro,  # Color de la barra de movimiento del Multiline
+                               'BUTTON': ('black', color_gris_claro),
+                               'PROGRESS': ('white', color_gris_claro),
+                               'BORDER': 1,
+                               'SLIDER_DEPTH': 0,
+                               'PROGRESS_DEPTH': 0})
+
+
+
+    # Variables para layout
+    txtFnt = ("Poppins", 9, "bold")
+    Sg.set_options(font=("Poppins", 9))
+    Sg.theme('chill')
+
+    default_title = "Password Generator"
+
+
+    optionsLayout = [[Sg.Checkbox("UpperCase (A, B, ...)", key="upper", checkbox_color="white", enable_events=True, default=True),
+                        Sg.Checkbox("LowerCase (a, b, c, ...)", key="lower", checkbox_color="white", enable_events=True, default=True),
+                        Sg.Checkbox("Digits (0, 1, 2, ...)", key="digits",  checkbox_color="white", enable_events=True, default=True),
+                      ],
+
+
+                    [Sg.Checkbox("Special (!, \, |, %, ...)", key="special", checkbox_color="white", enable_events=True, default=True, tooltip="! \" % $ & ' * + , . : ; = ? ¿ ¡ \ | ` ~ #"),
+                        Sg.Checkbox("Space ( )", key="space", checkbox_color="white", enable_events=True, default=True),
+                        Sg.Checkbox("Brakets ([, ], {, })", key="brakets", checkbox_color="white", enable_events=True, default=True, tooltip="[ ] { } < > ( )"),],
+
+                    [Sg.Checkbox("Minus (-)", key="minus", checkbox_color="white", enable_events=True, default=True),
+                        Sg.Checkbox("Underline (_)", key="underline", checkbox_color="white", enable_events=True, default=True)]
+                     ]
+
+    deriveLayout = [
+        [Sg.Input("", key='derive', size=(45, 1), disabled=True)],
+        [Sg.Checkbox("Permute Randomly Charset of Password", key="random", enable_events=True, disabled=True)]
+    ]
+
+    allLayout = [
+
+        # Modificator
+        [Sg.Radio("Generate Using Modificator", default=True, group_id="opt", key="mod", enable_events=True, font=txtFnt)],
+        [Sg.Text(" " * 5), Sg.Frame("SecureGenerator", optionsLayout, expand_x=True, expand_y=True,
+                                    title_location=(Sg.TITLE_LOCATION_TOP_RIGHT))],
+
+        # Derive
+        [Sg.Radio("Derive From Password", default=False, group_id="opt", key="der", enable_events=True, font=txtFnt)],
+        [Sg.Text(" " * 5), Sg.Frame("SecureDerive", deriveLayout, expand_x=True, expand_y=True, title_location=(Sg.TITLE_LOCATION_TOP_RIGHT))],
+
+       ]
+
+
+    # lo que se muestra:
+    layout = [[
+        Sg.Image(resource_path('images/passgen.png'), key="image", size=(68, 68)),
+        Sg.T('     GENERATE PASSWORD ', text_color='red', justification="center", pad=((2, 2), (4, 4)), font=("Arial", 12, "bold"))],
+        # Titulo de la contraseña
+        [Sg.Text("Profile:           ", font=txtFnt), Sg.Combo(["Robust", "Medium", "Low"], key="option", size=(43, 1), default_value="Robust",
+                                                  readonly=True, button_background_color="#94b8b8", background_color="#DCDCDC", enable_events=True)],
+        [Sg.Text("Password Length:    ", font=txtFnt),
+         Sg.Spin(list(range(4, 128)), initial_value=24, enable_events=True, key="-length-")],
+        [Sg.HSeparator()],
+
+        # Main frame
+        [Sg.Frame("Password Generator", allLayout, expand_x=True, expand_y=True, title_color='red')],
+
+        # Boton de cancelar
+        [Sg.Button("Cancelar", key='cancel', pad=(2, 1), button_color=color_gris_claro, mouseover_colors="#C2FFFE",
+                   border_width=1, font=button_font, size=button_size),
+         # Boton de aceptar
+         Sg.Button("OK", key='accept', pad=(2, 1), button_color=color_gris_claro, mouseover_colors="#C2FFFE",
+                   border_width=1, font=button_font, size=button_size, ),
+         ]
+
+    ]
+
+    window1 = Sg.Window(default_title, layout, border_depth=2, icon=resource_path("images/security.ico"))
+
+    while True:
+        event1, values1 = window1.read()
+        print(event1, values1)
+
+        # Cerrar con la X
+        if event1 == Sg.WIN_CLOSED:
+            break
+
+        if event1 == "accept":
+            p = makeChanges(values1, window1)
+            break
+
+        elif event1 == "cancel":
+            window1.close()
+            break
+
+        elif event1 == "mod":
+            disable_derive_elements(window1, True, 2)
+            disable_derive_elements(window1, False, 1)
+
+        elif event1 == "der":
+            disable_derive_elements(window1, True, 1)
+            disable_derive_elements(window1, False, 2)
+
+        elif event1 == "option":
+            changeLength(values1, window1)
+
+    try:
+        return p
+    except UnboundLocalError:
+        window1.close()
+        return None
+
+
+def setQuality(passw, window1):
+    strength = psg.passwordstrength(passw)
+    punct = strength.get_score()
+    window1['-PROGRESS-'].update(punct)
+    window1['-quality-'].update(punct)
+    return strength
 
 
 def main_entry(used, entry_data, db_file, tables_info):
+    do = None
     if entry_data:
         id_column = entry_data[0]
     else:
@@ -195,6 +433,10 @@ def main_entry(used, entry_data, db_file, tables_info):
         notes = entry_data[5]
     except IndexError:
         notes = ""
+    try:
+        quality = entry_data[6]
+    except:
+        quality = ""
 
     global window
     check_database(db_file)
@@ -212,45 +454,53 @@ def main_entry(used, entry_data, db_file, tables_info):
 
     # Variables para layout
     Sg.set_options(font=("Poppins", 9))
+    txtFnt = ("Poppins", 9, "bold")
     Sg.theme('chill')
     options = ['unused', ['Open Generator', '---', 'Robust', 'Medium', 'Low']]
 
 
     default_title = "Add Entry"
 
-    # lo que se muestra:
-    layout = [[
-        Sg.Image(resource_path('images/1.png'), key="image1"),
-        Sg.T('SAVE PASSWORD ', text_color='red', justification="center", pad=((2, 2), (4, 4)), font=("Arial", 12))],
-        [Sg.Text(' ' * 60)],
-
+    inputsLayout = [
         # Titulo de la contraseña
-        [Sg.Text("Titulo:             "), Sg.Input(title, key="title", size=(45, 1))],
+        [Sg.Text("Title:                ", font=txtFnt), Sg.Input(title, key="title", size=(45, 1))],
         # Usuario
-        [Sg.Text("User name:  "), Sg.Input(user, key='user', size=(45, 1))],
+        [Sg.Text("User name:   ", font=txtFnt), Sg.Input(user, key='user', size=(45, 1))],
 
         # Contraseña
-        [Sg.Text("Password:    "), Sg.Input(password, key='password', password_char='•', size=(40, 1)),
+        [Sg.Text("Password:    ", font=txtFnt),
+         Sg.Input(password, key='password', password_char='•', size=(40, 1), enable_events=True),
          # Mostramos o ocultamos la contrasela
          Sg.Button("", key="show_password", image_filename=resource_path('images/eye_icon1.png'),
                    mouseover_colors="#C2FFFE", button_color=color_gris_claro, tooltip="Show / Hide", size=button_size,
                    font=button_font), ],
 
         # Confirmacion de contraseña
-        [Sg.Text("Repeat:         "), Sg.Input(password, key='-password-', password_char='•', size=(40, 1)),
+        [Sg.Text("Repeat:          ", font=txtFnt),
+         Sg.Input(password, key='-password-', password_char='•', size=(40, 1)),
          # Generador de contraselas
          Sg.ButtonMenu('', options, key='submenu', button_color=color_gris_claro,
-                       image_filename=resource_path("images/generate.png"), tooltip="Generator", pad=(1, 0),)],
+                       image_filename=resource_path("images/generate.png"), tooltip="Generator")],
+        # Calidad de contraseña
+        [Sg.Text("Quality:          ", font=txtFnt),
+         Sg.ProgressBar(256, orientation='h', size=(26, 20), key='-PROGRESS-', bar_color=("green", "white"),
+                        border_width=1, expand_x=True, expand_y=True),
+         Sg.Text("", key="-quality-", font=button_font)],
 
         # URL
-        [Sg.Text("URL:              "), Sg.Input(url, key='url', size=(45, 1))],
+        [Sg.Text("URL:               ", font=txtFnt), Sg.Input(url, key='url', size=(45, 1))],
 
         # Comentarios o notas
-        [Sg.Text("Notes:           "),
+        [Sg.Text("Notes:           ", font=txtFnt),
          Sg.Multiline(notes, size=(45, 10), key='notes', border_width=2), ],
+    ]
 
-        # Separacion para los botones...
-        [Sg.Text("_" * 60, text_color="gray", pad=(0, 0), expand_x=True, expand_y=True)],
+    # lo que se muestra:
+    layout = [[
+        Sg.Image(resource_path('images/1.png'), key="image1"),
+        Sg.T('SAVE PASSWORD ', text_color='red', justification="center", pad=((2, 2), (4, 4)), font=("Arial", 14, "bold"))],
+
+        [Sg.Frame("Saving Password", inputsLayout)],
 
         # Boton de cancelar
         [Sg.Button("Cancelar", key='cancel', pad=(2, 1), button_color=color_gris_claro, mouseover_colors="#C2FFFE",
@@ -259,51 +509,56 @@ def main_entry(used, entry_data, db_file, tables_info):
          Sg.Button("Aceptar", key='accept', pad=(2, 1), button_color=color_gris_claro, mouseover_colors="#C2FFFE",
                    border_width=1, font=button_font, size=button_size, ),
 
+
          # Separador del boton delete
          Sg.Text(" " * 82,),
 
          # Boton delete
          Sg.Button("Delete", key="delete", pad=(2, 1), button_color="red", mouseover_colors="#C2FFFE",
                    border_width=1, font=button_font, size=button_size)
-
          ],
-
-
     ]
 
     if entry_data:
         default_title = "Edit Entry"
+
     else:
         buttons = layout[-1]
         buttons.remove(buttons[3])
 
     show_password  = False  # Variable para almacenar la ventana emergente de submenú
-    window1 = Sg.Window(default_title, layout, border_depth=2)
+    window1 = Sg.Window(default_title, layout, border_depth=2, icon=resource_path("images/security.ico"), resizable=False)
 
     while True:
-        event1, values1 = window1.read()
+        event1, values1 = window1.read(timeout=1000)
         print(event1, values1)
-
         # Cerrar con la X
-        if event1 == Sg.WIN_CLOSED:
-            break
+        if event1 == "__TIMEOUT__" and do is None:
+            window1['-PROGRESS-'].update(quality)
+            strength = setQuality(values1['password'], window1)
+            do = True
 
+        elif event1 == Sg.WIN_CLOSED:
+            break
 
         # Generar contraseña random
         elif event1 == 'cancel':
             break
+
+        elif event1 == "password":
+            strength = setQuality(values1['password'], window1)
 
         # Guardar y continuar
         elif event1 == "accept":
             # No coinciden...
             if values1['password'] != values1['-password-']:
                 Sg.popup("Contraseñas NO coninciden...",
-                         title="Passwords doesn't match")
+                         title="Passwords doesn't match", icon=resource_path("images/security.ico"))
 
             # Contraseña VACIA
             elif values1['password'] == "":
                 Sg.popup("No has introducido una contraseña. \n\nRecuerda que puedes generar una cuando lo necesites",
-                         title='Empty Password')
+                         title='Empty Password', icon=resource_path("images/security.ico"))
 
             # Guardamos y cerramos...
             else:
@@ -313,13 +568,14 @@ def main_entry(used, entry_data, db_file, tables_info):
                 user_l = values1['user']
                 url_l = values1['url']
                 notes_l = values1['notes']
+                quality = strength.get_score()
 
                 if entry_data:
-                    update_password(password_l, user_l, title_l, url_l, used, notes_l, id_column)
+                    update_password(password_l, user_l, title_l, url_l, used, notes_l, quality, id_column)
                     window1.close()
 
                 else:
-                    write_password(password_l, user_l, title_l, url_l, used, notes_l, tables_info)
+                    write_password(password_l, user_l, title_l, url_l, used, notes_l, quality, tables_info)
                     window1.close()
 
 
@@ -335,16 +591,26 @@ def main_entry(used, entry_data, db_file, tables_info):
 
             if action == "Open Generator":
                 # Crear GUI para modificar el generador de contraseñas
-                continue
+                p = GeneratorPopup()
+                window1['password'].update(p)
+                window1['-password-'].update(p)
+                strength = setQuality(p, window1)
+                del p
 
             elif action == "Robust":
-                generate_random_password(20, window1)
+                p = generate_random_password(24, window1,)
+                strength = setQuality(p, window1)
+                del p
 
             elif action == "Medium":
-                generate_random_password(14, window1)
+                p = generate_random_password(18, window1, values=["upper", "lower", "digits", "special", "minus", "underline"])
+                strength = setQuality(p, window1)
+                del p
 
             elif action == "Low":
-                generate_random_password(8, window1)
+                p = generate_random_password(12, window1, values=["upper", "lower", "digits"])
+                strength = setQuality(p, window1)
+                del p
 
         # Borrar entrada
         elif event1 == "delete":
@@ -362,14 +628,35 @@ def check_database(db_file):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
 
-    c.execute('''CREATE TABLE IF NOT EXISTS General (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS Wifis (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS Windows (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS Internet (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS Mail (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS Papelera (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS General (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT, quality INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Wifis (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT, quality INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Windows (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT, quality INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Internet (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT, quality INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Mail (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT, quality INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS Papelera (id INTEGER, title TEXT, username TEXT, password TEXT, url TEXT, notes TEXT, quality INTEGER)''')
+    conn.commit()
+
+    # Versiones antiguas lo necesitan...f
+    tables_to_check = ['General', 'Wifis', 'Windows', 'Internet', 'Mail', 'Papelera']
+
+    for table_name in tables_to_check:
+        # Verificar si la columna 'quality' existe en la tabla
+        c.execute(f"PRAGMA table_info({table_name})")
+        columns = c.fetchall()
+
+        quality_column_exists = False
+        for column in columns:
+            if column[1] == 'quality':
+                quality_column_exists = True
+                break
+
+        # Si la columna 'quality' no existe, agrégala
+        if not quality_column_exists:
+            c.execute(f"ALTER TABLE {table_name} ADD COLUMN quality INTEGER")
 
     conn.commit()
+    c.close()
+
     c.close()
 
 
@@ -397,7 +684,8 @@ def dump_database(db_file):
                 'username': row[2],
                 'password': row[3],
                 'url': row[4],
-                'notes': row[5]
+                'notes': row[5],
+                'quality': row[6]
 
             }
 
@@ -436,7 +724,7 @@ def create_database():
     ]
 
     show_password = False
-    window = Sg.Window('Create DB', layout)
+    window = Sg.Window('Create DB', layout, icon=resource_path("images/security.ico"))
 
     while True:
         try:
@@ -458,8 +746,6 @@ def create_database():
                 check_database(file)
                 shutil.copyfile(file, temp.name)
                 window.close()
-
-
                 done = True
 
             elif event == "-FOLDER-":
@@ -472,10 +758,10 @@ def create_database():
 
             # Este es el menu para seleecionar la contraseña random
             elif event == 'generate':
-                get_pass(25, window, master=True)
+                get_pass(32, window, master=True)
 
             else:
-                Sg.popup("Rellena todos los campos...", title='Error...')
+                Sg.popup("Rellena todos los campos...", title='Error...', icon=resource_path("images/security.ico"))
         except FileNotFoundError:
             window['-error-'].update("Ubicacion NO encontrada...")
 
@@ -564,7 +850,7 @@ def open_database():
 
     ]
 
-    window2 = Sg.Window('Open Database', layout)
+    window2 = Sg.Window('Open Database', layout, icon=resource_path("images/security.ico"))
 
 
     while True:
@@ -637,13 +923,17 @@ def open_db_layout(database, table):
             notes = record['notes']
         except:
             notes = ""
+        try:
+            quality = record['quality']
+        except:
+            quality = ""
 
-        table_data.append([id_t, title, user, password, url, notes])
+        table_data.append([id_t, title, user, password, url, notes, quality])
 
-    table_data_with_asterisks = [[title, user, "*" * len(password), url, notes] for id_t, title, user, password, url, notes in table_data]
+    table_data_with_asterisks = [[title, user, "*" * len(password), url, notes] for id_t, title, user, password, url, notes, quality in table_data]
+    print(table_data_with_asterisks, table_data)
 
     headings = ['Title', 'Username', 'Password', 'URL', 'Notes']
-
     return table_data, headings, table_data_with_asterisks
 
 
@@ -663,7 +953,8 @@ def dump_table_data(table_name):
             'username': row[2],
             'password': row[3],
             'url': row[4],
-            'notes': row[5]
+            'notes': row[5],
+            'quality': row[6]
 
         }
 
@@ -716,11 +1007,6 @@ def update_db(db_file, element, table_data, table_name):
     window['main_table'].update(values=table_data_with_asterisks)
 
 def get_title(dbfile):
-    """separators = ['//', '/', '\\\\',  '\\']
-    for sep in separators:
-        parts = db_file.split(sep)
-        if len(parts) > 1:
-            return parts[3]"""
     return os.path.basename(dbfile)
 
 
@@ -732,14 +1018,17 @@ def saveKey():
     crypt_thread.join()
     shutil.copyfile(tmp.name, file)
 
-    tmp.delete
+    os.remove(tmp.name)
     return 0
 
-def closing():
+
+def closing(err=False):
     crypt_thread = threading.Thread(target=init_crypt_file, args=(db_file, secret_key))
     crypt_thread.start()
     crypt_thread.join()
     window.close()
+    if err:
+        raise err
     sys.exit(0)
 
 
@@ -759,7 +1048,7 @@ def checkContent():
         del d, t
         return 0
     else:
-        event = Sg.popup_ok_cancel("You need to save changes on the database. You want it?...", title="Warning")
+        event = Sg.popup_ok_cancel("You need to save changes on the database. You want it?...", title="Warning", icon=resource_path("images/security.ico"))
         if event == 'OK':
             saveKey()  # Llamada a la función para guardar los cambios
             os.remove(tmp.name)
@@ -769,6 +1058,66 @@ def checkContent():
             os.remove(tmp.name)
             os.remove(tmpDB.name)
             return 0
+
+
+def changeImage(key, background, window):
+    if background == "white":
+        if "General" in key:
+            window[key].update(filename="images/general.png")
+        elif "Internet" in key:
+            window[key].update(filename="images/internet.png")
+        elif "Wifi" in key:
+            window[key].update(filename="images/wifi.png")
+        elif "Windows" in key:
+            window[key].update(filename="images/windows.png")
+        elif "Mail" in key:
+            window[key].update(filename="images/mail.png")
+        elif "Papelera" in key:
+            window[key].update(filename="images/trash.png")
+        else:
+            pass
+
+    else:
+        if "General" in key:
+            window[key].update(filename="images/generalblue.png")
+        elif "Internet" in key:
+            window[key].update(filename="images/internetblue.png")
+        elif "Wifi" in key:
+            window[key].update(filename="images/wifiblue.png")
+        elif "Windows" in key:
+            window[key].update(filename="images/windowsblue.png")
+        elif "Mail" in key:
+            window[key].update(filename="images/mailblue.png")
+        elif "Papelera" in key:
+            window[key].update(filename="images/trashblue.png")
+
+        else:
+            pass
+
+
+
+def updateWindow(event, window, db_file):
+    global default_table
+    print(default_table)
+    try:
+        # Seleccionamos tabla
+        Newtable = event
+        window[event].update(background_color="#cde8ff")
+        changeImage(event + "Img", "#cde8ff", window)
+        window[default_table].update(background_color="white")
+        changeImage(default_table + "Img", "white", window)
+        database_info, tables = dump_database(db_file)
+
+        # Sacamos datos de la tabla y le damos a la window los datos con la password ocultada
+        table_data, headings, table_data_with_asterisks = open_db_layout(database_info, Newtable)
+
+        # Actualizamos
+        window['main_table'].update(values=table_data_with_asterisks)
+        default_table = Newtable
+        return table_data, headings, table_data_with_asterisks
+
+    except KeyError:
+        return
 
 
 if __name__ == "__main__":
@@ -801,6 +1150,7 @@ if __name__ == "__main__":
         # Select Database
         if not database:
             db_file = open_database()
+            check_database(db_file)
 
             if not db_file:
                 sys.exit(1)
@@ -820,15 +1170,32 @@ if __name__ == "__main__":
             [Sg.Text('CONTRASEÑAS\n\n\n', text_color="black", font="Origen")],
             [Sg.Button('General', key="change-general", size=button_size, font=button_font, mouseover_colors="#cde8ff"),]],"""
 
-        list_layout = [
+        """list_layout = [
             [Sg.Listbox(['General', 'Internet', 'Wifis', "Windows", "Mail", "Papelera"], no_scrollbar=True
-                        ,s=(300,540), enable_events=True,
-                        highlight_background_color="#cde8ff", highlight_text_color="black", pad=(2, 2))],
+                        ,size=(50,45), enable_events=True, highlight_background_color="#cde8ff", highlight_text_color="black", pad=(2, 2))],
             [Sg.HSeparator()],
-            [Sg.Text("Previsualization", key="entry-data")]
+            [Sg.Text("Previsualization", key="entry-data", text_color="black", font=("Poppins", 12, "bold"))]
+        ]"""
+
+        tmoFont = ("Poppins", 10)
+        list_layout = [
+            [Sg.Image(source=resource_path("images/generalblue.png"), pad=((4,0),(2,2)), key="GeneralImg"), Sg.Text("  General", font=tmoFont, enable_events=True, background_color="#cde8ff", pad=((0,4),(2,2)), expand_x=True, key="General", )],
+            [Sg.HSeparator()],
+            [Sg.Image(source=resource_path("images/internet.png"), pad=((4,0),(2,2)), key="InternetImg"), Sg.Text("  Internet", pad=((0,4),(2,2)), font=tmoFont, enable_events=True, expand_x=True, key="Internet")],
+            [Sg.HSeparator()],
+            [Sg.Image(source=resource_path("images/wifi.png"), pad=((4,0),(2,2)), key="WifisImg"), Sg.Text("  Wifis", pad=((0,4),(2,2)), font=tmoFont, enable_events=True, expand_x=True, key="Wifis")],
+            [Sg.HSeparator()],
+            [Sg.Image(source=resource_path("images/windows.png"), pad=((4,0),(2,2)), key="WindowsImg"), Sg.Text("  Windows", pad=((0,4),(2,2)), font=tmoFont, enable_events=True, expand_x=True, key="Windows")],
+            [Sg.HSeparator()],
+            [Sg.Image(source=resource_path("images/mail.png"), pad=((4,0),(2,2)), key="MailImg"), Sg.Text("  Mail", pad=((0,4),(2,2)), font=tmoFont, enable_events=True, expand_x=True, key="Mail")],
+            [Sg.HSeparator()],
+            [Sg.Image(source=resource_path("images/trash.png"), pad=((4,0),(2,2)), key="PapeleraImg"), Sg.Text("  Papelera", pad=((0,4),(2,2)), font=tmoFont, enable_events=True, expand_x=True, key="Papelera")],
+            [Sg.HSeparator()],
+            [Sg.Text("Previsualization", key="entry-data", text_color="black", font=("Poppins", 12, "bold"))],
+
         ]
 
-        layout = [
+        layout = ([
             # Menu superior
             [Sg.Menu(menu_definit)],
 
@@ -858,11 +1225,13 @@ if __name__ == "__main__":
                      right_click_menu=right_option_click,
                      key="main_table")],
 
-        ]
+
+        ],)
+
 
         title = get_title(file)
         # Ventana principal
-        window = Sg.Window(title, layout, resizable=True, size=(1920, 1080))
+        window = Sg.Window(title, layout, resizable=True, size=(1920, 1080), icon=resource_path("images/security.ico"))
 
 
         while True:
@@ -901,23 +1270,12 @@ if __name__ == "__main__":
                 table_data, headings, table_data_with_asterisks = open_db_layout(database_new_info, default_table)
                 window['main_table'].update(values=table_data_with_asterisks)
 
-            elif event == 1:
-                try:
-                    # Seleccionamos tabla
-                    default_table = values[1][0]
-                    database_info, tables = dump_database(db_file)
-
-                    # Sacamos datos de la tabla y le damos a la window los datos con la password ocultada
-                    table_data, headings, table_data_with_asterisks = open_db_layout(database_info, default_table)
-
-                    # Actualizamos
-                    window['main_table'].update(values=table_data_with_asterisks)
-
-                except KeyError:
-                    continue
+            elif event in ['General', 'Internet', 'Wifis', "Windows", "Mail", "Papelera"]:
+                table_data, headings, table_data_with_asterisks = updateWindow(event, window, db_file)
 
             elif event == "Save::savekey":
                 saveKey()
+                Sg.popup_ok("Database Has been saved... ", icon=resource_path("images/security.ico"))
 
             elif values['main_table']:
                 try:
@@ -934,8 +1292,9 @@ if __name__ == "__main__":
                 except TypeError:
                     continue
 
+
         closing()
 
     except Exception as e:
         print("\n\n\n\n", e, "\n\n\n\n")
-        closing()
+        closing(e)

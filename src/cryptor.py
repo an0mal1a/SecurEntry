@@ -24,6 +24,7 @@ def init_decrypt_file(file, key):
     except ValueError:
         return 1
 
+
 def init_crypt_file(file, key):
     with open(file, "rb") as f:
         content = f.read()
