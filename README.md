@@ -13,9 +13,11 @@ En desarrollo...
 
   **1.** Añadido calidad de contraseña (No va en base a bytes, se calcula utilizando reglas encontradas en Wolframa)
      (https://github.com/gkbrk/passwordstrength)
+
   ![img_7.png](img/img_7.png)
 
   **2.** Añadido la opcion de abrir el password generator (Select options, derive from password):
+  
   ![img_6.png](img/img_6.png)
 
 
