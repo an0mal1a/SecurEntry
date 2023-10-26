@@ -1718,6 +1718,6 @@ if __name__ == "__main__":
 
         closing()
 
-    except "a" as e:
+    except Exception as e:
         print("\n\n\n\n", e, "\n\n\n\n")
         closing(e)
