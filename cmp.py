@@ -1,34 +1,43 @@
-import os
-import shutil
 import subprocess
+import os, sysconfig, sys
 
-def makeCommand():
-    global aux
-    image_dir = 'src/images'
-    # Genera la parte --add-data del comando para cada archivo en el directorio de imágenes
-    add_data_parts = [f'--add-data "{os.path.join(image_dir, filename)};images/."' for filename in os.listdir(image_dir)] # PyInstaller
-    add_data_option = ' '.join(add_data_parts)
-    aux = f'pyinstaller --onefile --noconsole --clean --noupx --icon="src\images\security.ico" {add_data_option} -n SecurEntry src/manager.py'  # PyInstaller
-    return f'pyinstaller --onefile --noconsole --key="Secur/EntryV1" --clean --strip --noupx --icon="src\images\security.ico" {add_data_option} -n SecurEntry src/manager.py' # PyInstaller
-    # add_data_parts = [f' --include-data-file="{os.path.join(image_dir, filename)}=images/{filename}"' for filename in os.listdir(image_dir)]   # Nuitka
-    #return f'nuitka --exe --onefile --standalone --disable-console --windows-icon-from-ico="src\images\security.ico" {add_data_option} --enable-plugin=tk-inter --output-dir="./dist" --output-filename="SecurEntry" src/manager.py'  # Nuitka
+#windres images/icon.rc -O coff -o icon.o
+
+def transformC():
+    commandWin = "python -m cython --embed -o src/SecurEntry.c src/manager.py"
+    os.system(commandWin)
+    WindowsCompilation()
 
 
-def execCommand(command):
-    cmpl = subprocess.Popen(command, shell=True)
-    cmpl.wait()
+def WindowsCompilation():
+    if os.path.exists("src/SecurEntry.c"):
+        # Variables para el comando windows
+        libsPath = os.path.join(sysconfig.get_path('data'), 'libs')
+        includePath = sysconfig.get_path('include')
+        pythonV = ".".join(map(str, sys.version_info[:2])).replace(".", "")
+
+        # Comando formado
+        formedPowerShellCommand = f"gcc -mwindows -municode -DMS_WIN64 src/SecurEntry.c -o src/SecurEntry.exe -L{libsPath} -I{includePath} -lpython{pythonV} src/images/icon.o"
+
+        print("\n\nExecuting command to compile: ", formedPowerShellCommand)
+
+        cmp = subprocess.Popen(formedPowerShellCommand, shell=True)
+        cmp.wait()
+
+        print(f"\n\nCompilation was done, check for ./src/SecurEntry.exe")
+
+    else:
+        print("\n\nC module not found... try to install cython (pip install cython) or execute this command:\n\tpython -m cython --embed -o client/connection.c client/connectionC.py")
 
 
-def main():
-    command = makeCommand()
-    print("\nExecuting command to compile: %s\n\n" % command)
-    execCommand(command)
-    if not os.path.exists("./dist/SecurEntry.exe"):
-        print("\n\nExecuting auxiliar command to compile: %s\n\n" % aux)
-        execCommand(aux)
-        
+def setParameters():
+    global name, icon
+    input("\nEste Script solo funcionará si tienes todas las dependencias necesarias para compila el código C.\n\t\t CTRL + C to Exit | ENTER to Continue")
+    transformC()
+
 
 if __name__ == "__main__":
-    if os.path.exists("./dist"): shutil.rmtree("./dist") ;os.makedirs("./dist")
-    else: os.makedirs("./dist")
-    main()
+    try:
+        setParameters()
+    except KeyboardInterrupt:
+        exit(0)
