@@ -9,12 +9,14 @@ En desarrollo...
     en Python. Almacena tus contraseñas de forma segura y accede a ellas fácilmente desde cualquier lugar. 
     Utiliza técnicas avanzadas de cifrado para proteger tus contraseñas y garantizar tu privacidad
 ---
-# Download
-- Option 1: 
-    ### Descargalo de Source Forge [LINK](https://sourceforge.net/projects/securentry/)
 
-- Option 2: 
-    ### Dirigete al ultimo [release](https://github.com/an0mal1a/SecurEntry/releases) y descarga el binario. Al ejecutarlo instalará las imágenes necesarias para la ejecución.
+# Informacion
+- Para usar la compilación con C es necesario tener GCC y python3 instalado en el sistema y compilarlo manualmente.
+
+# Download
+
+
+[C Binary (RECOMENDADO)](#compilacion)
 
 # New
 
@@ -31,11 +33,12 @@ En desarrollo...
 
 
 ---
-# Compilación:
+# Compilacion:
 
 #### Requirements
 
 - GCC: MinGW 64 Bits [DOWNLOAD LINK](https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0mcf-16.0.6-11.0.1-ucrt-r2/winlibs-x86_64-mcf-seh-gcc-13.2.0-llvm-16.0.6-mingw-w64ucrt-11.0.1-r2.7z)
+- Python 3.8 - 3.11
 
 - Instalamos el archivo "requirements.txt" con el siguiente comando:
 
