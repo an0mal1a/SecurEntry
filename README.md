@@ -10,7 +10,11 @@ En desarrollo...
     Utiliza técnicas avanzadas de cifrado para proteger tus contraseñas y garantizar tu privacidad
 ---
 # Download
-Dirigete al ultimo [release](https://github.com/an0mal1a/SecurEntry/releases) y descarga el binario. Al ejecutarlo instalará las imágenes necesarias para la ejecución.
+- Option 1: 
+    ### Descargalo de Source Forge [LINK](https://sourceforge.net/projects/securentry/)
+
+- Option 2: 
+    ### Dirigete al ultimo [release](https://github.com/an0mal1a/SecurEntry/releases) y descarga el binario. Al ejecutarlo instalará las imágenes necesarias para la ejecución.
 
 # New
 
@@ -51,7 +55,7 @@ Dirigete al ultimo [release](https://github.com/an0mal1a/SecurEntry/releases) y 
       python -m cython --embed src/manager.py .o src/SecurEntry.c
   
 
-  Compilamos con GCC (POWERSHELL):
+  Compilamos con GCC:
   
       gcc -mwindows -municode -DMS_WIN64 .\src\SecurEntry.c -o .\src\SecurEntry -L $(python -c "import os, sysconfig; print(os.path.join(sysconfig.get_path('data'), 'libs'))") -I $(python -c "import sysconfig; print(sysconfig.get_path('include'))") -l python$(python -c 'import sys; print(\".\".join(map(str, sys.version_info[:2])).replace(\".\",\"\"))') .\src\images\icon.o
 

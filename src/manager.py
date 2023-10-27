@@ -20,12 +20,15 @@ import string
 import random
 import threading
 
-# Testear acceso a memoria
+# Crear extensión propia
+# Juntar con kdbx
+# ETC
 
 file = ""
 options = ['unused', ['Open Generator', '---', 'Robust', 'Medium', 'Low']]
 right_option_click = ['unused', ['Add Entry', '---', 'Edit Entry', 'Copy Username', 'Copy Password']]
 database_info = []
+temp = tempfile.NamedTemporaryFile(delete=False)
 temp = tempfile.NamedTemporaryFile(delete=False)
 temp.close()
 fileDatabaseExample = Path.home()
@@ -1295,7 +1298,6 @@ def open_database():
         # Cerrar
         if event2 == Sg.WIN_CLOSED:
             window2.close()
-            db_file = None
             break
 
         # Crear Base de Datos
@@ -1324,7 +1326,10 @@ def open_database():
             repite_password = ""
             show_password = change_eye_button(show_password, password_input, repite_password, window2)
 
-    setDefDatabas(values2['-FILE-'])
+    try:
+        setDefDatabas(values2['-FILE-'])
+    except TypeError:
+        pass
     try:
         window2.close()
         return db_file
@@ -1365,7 +1370,7 @@ def open_db_layout(database, table):
 
         table_data.append([id_t, title, user, password, url, notes, quality])
 
-    table_data_with_asterisks = [[title, user, "*" * len(password), url, notes] for id_t, title, user, password, url, notes, quality in table_data]
+    table_data_with_asterisks = [[title, user, "*" * 10, url, notes] for id_t, title, user, password, url, notes, quality in table_data]
     print(table_data_with_asterisks, table_data)
 
     headings = ['Title', 'Username', 'Password', 'URL', 'Notes']
@@ -1447,6 +1452,7 @@ def get_title(dbfile):
 
 def saveKey():
     tmp = tempfile.NamedTemporaryFile(delete=False); tmp.close()
+    print(db_file, tmp.name)
     shutil.copyfile(db_file, tmp.name)
     crypt_thread = threading.Thread(target=init_crypt_file, args=(tmp.name, secret_key))
     crypt_thread.start()
@@ -1584,6 +1590,7 @@ if __name__ == "__main__":
         # Select Database
         if not database_info:
             db_file = open_database()
+
             check_database(db_file)
 
             if not db_file:
@@ -1594,10 +1601,19 @@ if __name__ == "__main__":
             table_data, headings, table_data_with_asterisks = open_db_layout(database_info, default_table)
 
 
+
         # Menu superior
-        menu_definit = [['&File', ['&Open', '&Save::savekey', '---', '&Properties', 'E&xit']],
+        menu_definit = [['  &File', ['&Open', '&Save::savekey', '---', '&Properties', 'E&xit']],
                     ['&Group', ['Add Group'], ],
                     ['&Entry', ['Copy Username', 'Copy Password', 'Edit Entry', 'Add Entry']],]
+
+        submenu_def = [
+            [
+                Sg.Button(image_source=f"{imgPath}/saveIcon.png", mouseover_colors=blue_color, key="Save::savekey", tooltip="Save", pad=((4, 0), (1, 1))),
+                Sg.Button(image_source=f"{imgPath}/open.png", mouseover_colors=blue_color, key="Open", tooltip="Save", pad=((4, 0), (1, 1))),
+
+            ]
+        ]
 
         tmoFont = ("Poppins", 9, "bold")
         list_layout = [
@@ -1612,26 +1628,29 @@ if __name__ == "__main__":
 
         table_layout = [
             [Sg.Table(values=table_data_with_asterisks,
-                             headings=headings,
-                             max_col_width=30,
-                             display_row_numbers=False,
-                             num_rows=min(25, len(table_data_with_asterisks)),
-                             expand_x=True,
-                             border_width=0,
-                             expand_y=True,
-                             enable_click_events=True,
-                             justification="center",
-                             row_height=18,
-                             selected_row_colors=("black", blue_color),
-                             alternating_row_color=purple_color,
-                             header_border_width=0,
-                             header_relief="RELIEF_RAISED",
-                             hide_vertical_scroll=True,
-                             sbar_background_color=color_gris_fondo_claro,
-                             header_background_color="white",
-                             right_click_menu=right_option_click,
-                             key="main_table")
-            ]
+                      headings=headings,
+                      header_font=("Serif", 11, "bold"),
+                      max_col_width=30,
+                      display_row_numbers=False,
+                      num_rows=min(25, len(table_data_with_asterisks)),
+                      expand_x=True,
+                      expand_y=True,
+                      border_width=1,
+                      header_border_width=5,
+                      enable_click_events=True,
+                      justification="center",
+                      row_height=18,
+                      selected_row_colors=("black", blue_color),
+                      background_color="white",
+                      sbar_background_color=color_gris_fondo_claro,
+                      header_background_color="white",
+                      alternating_row_color=purple_color,
+                      header_relief="RELIEF_RAISED",
+                      hide_vertical_scroll=True,
+                      right_click_menu=right_option_click,
+                      pad=((0,0), (0,3)),
+                      key="main_table")
+             ]
         ]
 
 
@@ -1639,7 +1658,7 @@ if __name__ == "__main__":
         layout = ([
             # Menu superior
             [Sg.Menu(menu_definit)],
-
+            [submenu_def],
 
             # Sección izquierda de la pantalla
             [Sg.Frame(title="", layout=list_layout, size=(250, 1440), key="tables"),
@@ -1670,19 +1689,22 @@ if __name__ == "__main__":
 
             # update de la tabla "main_table"
             elif event == "Open":
-                db_file = open_database()
+                db_file1 = open_database()
 
-                if db_file is None:
+                if db_file1 is None:
                     continue
 
-                database_info, tables = dump_database(db_file)
+                else:
+                    db_file = db_file1
+                    del db_file1
+                    database_info, tables = dump_database(db_file)
 
-                # Sublayout con datos de la base de datos
-                table_data, headings, table_data_with_asterisks = open_db_layout(database_info, default_table)
+                    # Sublayout con datos de la base de datos
+                    table_data, headings, table_data_with_asterisks = open_db_layout(database_info, default_table)
 
-                # Actualizar secciones...
-                window.set_title(get_title(file))
-                window['main_table'].update(values=table_data_with_asterisks)
+                    # Actualizar secciones...
+                    window.set_title(get_title(file))
+                    window['main_table'].update(values=table_data_with_asterisks)
 
 
             elif event == "Add Entry":
